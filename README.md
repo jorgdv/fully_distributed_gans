@@ -1,7 +1,7 @@
-Improved Training of Wasserstein GANs
-=====================================
+Fully Distributed Generative Adversarial Networks
+=================================================
 
-Code for reproducing experiments in ["Improved Training of Wasserstein GANs"](https://arxiv.org/abs/1704.00028).
+Code for "Fully Distributed Generative Adversarial Networks". Based on the code of ["Improved Training of Wasserstein GANs"](https://arxiv.org/abs/1704.00028).
 
 
 ## Prerequisites
