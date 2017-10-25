@@ -27,11 +27,11 @@ MODE = 'dcgan' # Valid options are dcgan, wgan, or wgan-gp
 DIM = 128 # This overfits substantially; you're probably better off with 64
 LAMBDA = 10 # Gradient penalty lambda hyperparameter
 CRITIC_ITERS = 5 # How many critic iterations per generator iteration
-BATCH_SIZE = 16 # Batch size
+BATCH_SIZE = 64 # Batch size
 ITERS = 200000 # How many generator iterations to train for
 OUTPUT_DIM = 3072 # Number of pixels in CIFAR10 (3*32*32)
 
-N_NODES = 5
+N_NODES = 1
 NODES = range(N_NODES)
 C = np.ones([N_NODES,N_NODES]) / N_NODES
 
@@ -172,18 +172,18 @@ for i in NODES:
 		disc_cost[i] += tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits = disc_real[i], labels = tf.ones_like(disc_real[i])))
 		disc_cost[i] /= 2.
 
-		gen_train_op.append( tf.train.MomentumOptimizer(learning_rate=2e-4, momentum=0.5, use_nesterov=True).minimize(gen_cost[i],
+		gen_train_op.append( tf.train.MomentumOptimizer(learning_rate=2e-4, momentum=0.9, use_nesterov=True).minimize(gen_cost[i],
  	   												   var_list=lib.params_with_name('Generator{}'.format(i))) )
-		disc_train_op.append( tf.train.MomentumOptimizer(learning_rate=2e-4, momentum=0.5, use_nesterov=True).minimize(disc_cost[i],
+		disc_train_op.append( tf.train.MomentumOptimizer(learning_rate=2e-4, momentum=0.9, use_nesterov=True).minimize(disc_cost[i],
 													   var_list=lib.params_with_name('Discriminator{}'.format(i))) )
 
 # For generating samples
 fixed_noise_128 = tf.constant(np.random.normal(size=(128, 128)).astype('float32'))
 fixed_noise_samples_128 = Generator(128, noise=fixed_noise_128)
-def generate_image(frame, true_dist):
+def generate_image(frame):
 	samples = session.run(fixed_noise_samples_128)
 	samples = ((samples+1.)*(255./2)).astype('int32')
-	lib.save_images.save_images(samples.reshape((128, 3, 32, 32)), 'samples_{}.jpg'.format(frame))
+	lib.save_images.save_images(samples.reshape((128, 3, 32, 32)), 'samples_{}.png'.format(frame))
 
 # For calculating inception score
 samples_100 = Generator(100, index = 0)
@@ -201,7 +201,7 @@ train_gen = []
 dev_gen = []
 
 for nod in NODES:
-	tt, dd = lib.cifar10.load(BATCH_SIZE, data_dir=DATA_DIR, index=nod)
+	tt, dd = lib.cifar10.load(BATCH_SIZE, data_dir=DATA_DIR, index=None)
 	train_gen.append(tt)
 	dev_gen.append(dd)
 
@@ -226,6 +226,24 @@ for i in NODES:
 				))
 
 combination_op = tf.group(*ops)
+
+gen_params_mean = []
+disc_params_mean = []
+for o in range(len(gen_params[0])):
+	gen_params_mean.append(
+                    1.0/N_NODES * tf.add_n( [ gen_params[j][o] for j in NODES] )
+                            )
+for p in range(len(disc_params[0])):
+	disc_params_mean.append(
+                    1.0/N_NODES * tf.add_n( [ disc_params[j][p] for j in NODES] )
+                            )
+
+gen_dist = tf.reduce_sum ( [
+			tf.reduce_sum( [ tf.reduce_sum( tf.squared_difference(gen_params[i][o],gen_params_mean[o]) ) for o in range(len(gen_params[i]))] ) for i in NODES])
+
+disc_dist = tf.reduce_sum ( [
+                        tf.reduce_sum( [ tf.reduce_sum( tf.squared_difference(disc_params[i][o],disc_params_mean[o]) ) for o in range(len(disc_params[i]))] ) for i in NODES])
+
 
 
 # Train loop
@@ -280,17 +298,18 @@ with tf.Session() as session:
 			inception_score = get_inception_score()
 			#lib.plot.plot('NODE 0: inception score', inception_score[0])
 			print('NODE 0: inception score {}'.format(inception_score[0]) )
-			with open('inception_score_0.dat','ab') as file:
-				file.write(str(iteration)+','+str(inception_score[0]),'\n')
+			with open('inception_score_dist.dat','ab') as file:
+				file.write(str(iteration)+','+str(inception_score[0])+'\n')
+			generate_image(iteration)
 
 		# Calculate dev loss and generate samples every 100 iters
-		if iteration % 100 == 99:
-			dev_disc_costs = []
-			for images,_ in dev_gen[0]():
-				_dev_disc_cost = session.run(disc_cost[0], feed_dict={real_data_int[0]: images}) 
-				dev_disc_costs.append(_dev_disc_cost)
+		#if iteration % 100 == 99:
+		#	dev_disc_costs = []
+		#	for images,_ in dev_gen[0]():
+		#		_dev_disc_cost = session.run(disc_cost[0], feed_dict={real_data_int[0]: images}) 
+		#		dev_disc_costs.append(_dev_disc_cost)
 			#lib.plot.plot('NODE {}: dev disc cost'.format(node), np.mean(dev_disc_costs))
-			print('iter {} NODE 0: dev disc cost'.format(iteration), np.mean(dev_disc_costs))
+		#	print('iter {} NODE 0: dev disc cost'.format(iteration), np.mean(dev_disc_costs))
 			#generate_image(iteration, _data)
 
                 if (iteration % 100 == 99 or iteration < 10):
