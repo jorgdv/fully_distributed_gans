@@ -27,13 +27,17 @@ MODE = 'dcgan' # Valid options are dcgan, wgan, or wgan-gp
 DIM = 128 # This overfits substantially; you're probably better off with 64
 LAMBDA = 10 # Gradient penalty lambda hyperparameter
 CRITIC_ITERS = 5 # How many critic iterations per generator iteration
-BATCH_SIZE = 64 # Batch size
+BATCH_SIZE = 8 # Batch size
 ITERS = 200000 # How many generator iterations to train for
 OUTPUT_DIM = 3072 # Number of pixels in CIFAR10 (3*32*32)
 
-N_NODES = 1
+N_NODES = 10
 NODES = range(N_NODES)
-C = np.ones([N_NODES,N_NODES]) / N_NODES
+
+with open('C3.csv','r') as file:
+	C=np.loadtxt(file,delimiter=',',dtype=float)
+
+#C = np.ones([N_NODES,N_NODES]) / N_NODES
 
 lib.print_model_settings(locals().copy())
 
@@ -176,16 +180,35 @@ for i in NODES:
  	   												   var_list=lib.params_with_name('Generator{}'.format(i))) )
 		disc_train_op.append( tf.train.MomentumOptimizer(learning_rate=2e-4, momentum=0.9, use_nesterov=True).minimize(disc_cost[i],
 													   var_list=lib.params_with_name('Discriminator{}'.format(i))) )
-
 # For generating samples
 fixed_noise_128 = tf.constant(np.random.normal(size=(128, 128)).astype('float32'))
-fixed_noise_samples_128 = Generator(128, noise=fixed_noise_128)
-def generate_image(frame):
-	samples = session.run(fixed_noise_samples_128)
+fixed_noise_samples_128_3 = Generator(128, noise=fixed_noise_128, index=3)
+fixed_noise_samples_128_6 = Generator(128, noise=fixed_noise_128, index=6)
+
+def generate_image_3(frame):
+	samples = session.run(fixed_noise_samples_128_3)
 	samples = ((samples+1.)*(255./2)).astype('int32')
-	lib.save_images.save_images(samples.reshape((128, 3, 32, 32)), 'samples_{}.png'.format(frame))
+	lib.save_images.save_images(samples.reshape((128, 3, 32, 32)), 'samples_3_{}.png'.format(frame))
+
+def generate_image_6(frame):
+        samples = session.run(fixed_noise_samples_128_6)
+        samples = ((samples+1.)*(255./2)).astype('int32')
+        lib.save_images.save_images(samples.reshape((128, 3, 32, 32)), 'samples_6_{}.png'.format(frame))
+
 
 # For calculating inception score
+
+#samples_100_array = [Generator(100, index=ind) for ind in NODES]
+#def get_inception_score_node(node):
+#        all_samples = []
+#        for i in xrange(10):
+#                all_samples.append(session.run(samples_100_array[node]))
+#        all_samples = np.concatenate(all_samples, axis=0)
+#        all_samples = ((all_samples+1.)*(255./2)).astype('int32')
+#        all_samples = all_samples.reshape((-1, 3, 32, 32)).transpose(0,2,3,1)
+#        return lib.inception_score.get_inception_score(list(all_samples))
+
+
 samples_100 = Generator(100, index = 0)
 def get_inception_score():
 	all_samples = []
@@ -195,6 +218,26 @@ def get_inception_score():
 	all_samples = ((all_samples+1.)*(255./2)).astype('int32')
 	all_samples = all_samples.reshape((-1, 3, 32, 32)).transpose(0,2,3,1)
 	return lib.inception_score.get_inception_score(list(all_samples))
+
+samples_100_3 = Generator(100, index = 3)
+def get_inception_score_3():
+        all_samples = []
+        for i in xrange(10):
+                all_samples.append(session.run(samples_100_3))
+        all_samples = np.concatenate(all_samples, axis=0)
+        all_samples = ((all_samples+1.)*(255./2)).astype('int32')
+        all_samples = all_samples.reshape((-1, 3, 32, 32)).transpose(0,2,3,1)
+        return lib.inception_score.get_inception_score(list(all_samples))
+
+samples_100_6 = Generator(100, index = 6)
+def get_inception_score_6():
+        all_samples = []
+        for i in xrange(10):
+                all_samples.append(session.run(samples_100_6))
+        all_samples = np.concatenate(all_samples, axis=0)
+        all_samples = ((all_samples+1.)*(255./2)).astype('int32')
+        all_samples = all_samples.reshape((-1, 3, 32, 32)).transpose(0,2,3,1)
+        return lib.inception_score.get_inception_score(list(all_samples))
 
 # Dataset iterators
 train_gen = []
@@ -238,13 +281,16 @@ for p in range(len(disc_params[0])):
                     1.0/N_NODES * tf.add_n( [ disc_params[j][p] for j in NODES] )
                             )
 
-gen_dist = tf.reduce_sum ( [
-			tf.reduce_sum( [ tf.reduce_sum( tf.squared_difference(gen_params[i][o],gen_params_mean[o]) ) for o in range(len(gen_params[i]))] ) for i in NODES])
+gen_dist =  [
+			tf.reduce_sum( [ tf.reduce_sum( tf.squared_difference(gen_params[i][o],gen_params_mean[o]) ) for o in range(len(gen_params[i]))] ) for i in NODES]
 
-disc_dist = tf.reduce_sum ( [
-                        tf.reduce_sum( [ tf.reduce_sum( tf.squared_difference(disc_params[i][o],disc_params_mean[o]) ) for o in range(len(disc_params[i]))] ) for i in NODES])
+disc_dist = [
+                        tf.reduce_sum( [ tf.reduce_sum( tf.squared_difference(disc_params[i][o],disc_params_mean[o]) ) for o in range(len(disc_params[i]))] ) for i in NODES]
 
+gen_mean_norm = tf.reduce_sum( [ tf.reduce_sum( tf.square(gen_params_mean[o]) ) for o in range(len(gen_params_mean))] )
+disc_mean_norm = tf.reduce_sum( [ tf.reduce_sum( tf.square(disc_params_mean[o]) ) for o in range(len(disc_params_mean))] )
 
+saver = tf.train.Saver()
 
 # Train loop
 with tf.Session() as session:
@@ -282,6 +328,20 @@ with tf.Session() as session:
 		
 		#print('NODE 0',[session.run(gen_params[0][o]).shape for o in range(len(gen_params[0])) ] )
 		#print('NODE 1',[session.run(gen_params[1][o]).shape for o in range(len(gen_params[1])) ] )
+		if (iteration <= 500 or iteration % 100 == 99):
+			dm = session.run(disc_dist)
+			gm = session.run(gen_dist)
+
+			gw = session.run(gen_mean_norm)
+			dw = session.run(disc_mean_norm)
+
+			# IMPORTANT: second position is the norm of the mean!
+			with open('gen_mean.dat','ab') as file:
+                                file.write(str(iteration)+','+str(gw)+','+','.join([str(g) for g in gm])+'\n')
+			with open('disc_mean.dat','ab') as file:
+                                file.write(str(iteration)+','+str(dw)+','.join([str(d) for d in dm])+'\n')
+                        print('iter {}  gen_dists : {}'.format(iteration,gm))
+			print('iter {}  disc_dists : {}'.format(iteration,dm))
 
 		session.run(combination_op)
 		if (iteration % 100 == 99 or iteration < 10):
@@ -295,12 +355,29 @@ with tf.Session() as session:
 
 		# Calculate inception score every 1K iters
 		if iteration % 1000 == 999:
-			inception_score = get_inception_score()
+			#inception_score_array = [get_inception_score_node(nod) for nod in NODES]
+			inception_score_3 = get_inception_score_3()
+			inception_score_6 = get_inception_score_6()
 			#lib.plot.plot('NODE 0: inception score', inception_score[0])
-			print('NODE 0: inception score {}'.format(inception_score[0]) )
-			with open('inception_score_dist.dat','ab') as file:
-				file.write(str(iteration)+','+str(inception_score[0])+'\n')
-			generate_image(iteration)
+			#for nnod in NODES:
+			#	print('NODE {}: inception score {}'.format(nnod,inception_score_array[nnod][0]) )
+			#	with open('inception_score_dist_{}.dat'.format(nnod),'ab') as file:
+			#		file.write(str(iteration)+','+str(inception_score_array[nnod][0])+'\n')
+			print('NODE 3: inception score {}'.format(inception_score_3[0]) ) 
+                        with open('inception_score_dist_3.dat','ab') as file: 
+                                file.write(str(iteration)+','+str(inception_score_3[0])+'\n') 
+
+
+			print('NODE 6: inception score {}'.format(inception_score_6[0]) )
+                        with open('inception_score_dist_6.dat','ab') as file:
+                                file.write(str(iteration)+','+str(inception_score_6[0])+'\n')
+
+
+		if iteration % 5000 == 4999:
+			save_path = saver.save(session, "/tmp/model.ckpt")
+			print("Model saved in file: %s" % save_path)
+			generate_image_3(iteration)
+			generate_image_6(iteration)
 
 		# Calculate dev loss and generate samples every 100 iters
 		#if iteration % 100 == 99:
