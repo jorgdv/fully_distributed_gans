@@ -340,10 +340,10 @@ with tf.Session() as session:
 
 			# IMPORTANT: second position is the norm of the mean!
 			with open('gen_mean.dat','ab') as file:
-								file.write(str(iteration)+','+str(gw)+','+','.join([str(g) for g in gm])+'\n')
+				file.write(str(iteration)+','+str(gw)+','+','.join([str(g) for g in gm])+'\n')
 			with open('disc_mean.dat','ab') as file:
-								file.write(str(iteration)+','+str(dw)+','.join([str(d) for d in dm])+'\n')
-						print('iter {}  gen_dists : {}'.format(iteration,gm))
+				file.write(str(iteration)+','+str(dw)+','.join([str(d) for d in dm])+'\n')
+			print('iter {}  gen_dists : {}'.format(iteration,gm))
 			print('iter {}  disc_dists : {}'.format(iteration,dm))
 
 		session.run(combination_op)
@@ -367,13 +367,13 @@ with tf.Session() as session:
 			#	with open('inception_score_dist_{}.dat'.format(nnod),'ab') as file:
 			#		file.write(str(iteration)+','+str(inception_score_array[nnod][0])+'\n')
 			print('NODE 3: inception score {}'.format(inception_score_3[0]) ) 
-						with open('inception_score_dist_3.dat','ab') as file: 
-								file.write(str(iteration)+','+str(inception_score_3[0])+'\n') 
+			with open('inception_score_dist_3.dat','ab') as file: 
+				file.write(str(iteration)+','+str(inception_score_3[0])+'\n') 
 
 
 			print('NODE 6: inception score {}'.format(inception_score_6[0]) )
-						with open('inception_score_dist_6.dat','ab') as file:
-								file.write(str(iteration)+','+str(inception_score_6[0])+'\n')
+			with open('inception_score_dist_6.dat','ab') as file:
+				file.write(str(iteration)+','+str(inception_score_6[0])+'\n')
 
 
 		if iteration % 5000 == 4999:
