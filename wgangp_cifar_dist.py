@@ -167,8 +167,8 @@ for i in NODES:
 		gradient_penalty = tf.reduce_mean((slopes-1.)**2)
 		disc_cost[i] += LAMBDA*gradient_penalty
 
-                gen_train_op.append(tf.train.MomentumOptimizer(learning_rate=2e-4, momentum=0.9, use_nesterov=True).minimize(gen_cost[i], var_list=gen_params[i]))
-                disc_train_op.append(tf.train.MomentumOptimizer(learning_rate=2e-4, momentum=0.9, use_nesterov=True).minimize(disc_cost[i], var_list=disc_params[i]))
+				gen_train_op.append(tf.train.MomentumOptimizer(learning_rate=2e-4, momentum=0.9, use_nesterov=True).minimize(gen_cost[i], var_list=gen_params[i]))
+				disc_train_op.append(tf.train.MomentumOptimizer(learning_rate=2e-4, momentum=0.9, use_nesterov=True).minimize(disc_cost[i], var_list=disc_params[i]))
 
 		#gen_train_op.append(tf.train.AdamOptimizer(learning_rate=1e-4, beta1=0.5, beta2=0.9).minimize(gen_cost[i], var_list=gen_params[i]))
 		#disc_train_op.append(tf.train.AdamOptimizer(learning_rate=1e-4, beta1=0.5, beta2=0.9).minimize(disc_cost[i], var_list=disc_params[i]))
@@ -180,7 +180,7 @@ for i in NODES:
 		disc_cost[i] /= 2.
 
 		gen_train_op.append( tf.train.MomentumOptimizer(learning_rate=2e-4, momentum=0.9, use_nesterov=True).minimize(gen_cost[i],
- 	   												   var_list=lib.params_with_name('Generator{}'.format(i))) )
+													   var_list=lib.params_with_name('Generator{}'.format(i))) )
 		disc_train_op.append( tf.train.MomentumOptimizer(learning_rate=2e-4, momentum=0.9, use_nesterov=True).minimize(disc_cost[i],
 													   var_list=lib.params_with_name('Discriminator{}'.format(i))) )
 # For generating samples
@@ -194,9 +194,9 @@ def generate_image_3(frame):
 	lib.save_images.save_images(samples.reshape((128, 3, 32, 32)), 'samples_3_{}.png'.format(frame))
 
 def generate_image_6(frame):
-        samples = session.run(fixed_noise_samples_128_6)
-        samples = ((samples+1.)*(255./2)).astype('int32')
-        lib.save_images.save_images(samples.reshape((128, 3, 32, 32)), 'samples_6_{}.png'.format(frame))
+		samples = session.run(fixed_noise_samples_128_6)
+		samples = ((samples+1.)*(255./2)).astype('int32')
+		lib.save_images.save_images(samples.reshape((128, 3, 32, 32)), 'samples_6_{}.png'.format(frame))
 
 
 # For calculating inception score
@@ -224,23 +224,23 @@ def get_inception_score():
 
 samples_100_3 = Generator(100, index = 3)
 def get_inception_score_3():
-        all_samples = []
-        for i in xrange(10):
-                all_samples.append(session.run(samples_100_3))
-        all_samples = np.concatenate(all_samples, axis=0)
-        all_samples = ((all_samples+1.)*(255./2)).astype('int32')
-        all_samples = all_samples.reshape((-1, 3, 32, 32)).transpose(0,2,3,1)
-        return lib.inception_score.get_inception_score(list(all_samples))
+		all_samples = []
+		for i in xrange(10):
+				all_samples.append(session.run(samples_100_3))
+		all_samples = np.concatenate(all_samples, axis=0)
+		all_samples = ((all_samples+1.)*(255./2)).astype('int32')
+		all_samples = all_samples.reshape((-1, 3, 32, 32)).transpose(0,2,3,1)
+		return lib.inception_score.get_inception_score(list(all_samples))
 
 samples_100_6 = Generator(100, index = 6)
 def get_inception_score_6():
-        all_samples = []
-        for i in xrange(10):
-                all_samples.append(session.run(samples_100_6))
-        all_samples = np.concatenate(all_samples, axis=0)
-        all_samples = ((all_samples+1.)*(255./2)).astype('int32')
-        all_samples = all_samples.reshape((-1, 3, 32, 32)).transpose(0,2,3,1)
-        return lib.inception_score.get_inception_score(list(all_samples))
+		all_samples = []
+		for i in xrange(10):
+				all_samples.append(session.run(samples_100_6))
+		all_samples = np.concatenate(all_samples, axis=0)
+		all_samples = ((all_samples+1.)*(255./2)).astype('int32')
+		all_samples = all_samples.reshape((-1, 3, 32, 32)).transpose(0,2,3,1)
+		return lib.inception_score.get_inception_score(list(all_samples))
 
 # Dataset iterators
 train_gen = []
@@ -277,18 +277,18 @@ gen_params_mean = []
 disc_params_mean = []
 for o in range(len(gen_params[0])):
 	gen_params_mean.append(
-                    1.0/N_NODES * tf.add_n( [ gen_params[j][o] for j in NODES] )
-                            )
+					1.0/N_NODES * tf.add_n( [ gen_params[j][o] for j in NODES] )
+							)
 for p in range(len(disc_params[0])):
 	disc_params_mean.append(
-                    1.0/N_NODES * tf.add_n( [ disc_params[j][p] for j in NODES] )
-                            )
+					1.0/N_NODES * tf.add_n( [ disc_params[j][p] for j in NODES] )
+							)
 
 gen_dist =  [
 			tf.reduce_sum( [ tf.reduce_sum( tf.squared_difference(gen_params[i][o],gen_params_mean[o]) ) for o in range(len(gen_params[i]))] ) for i in NODES]
 
 disc_dist = [
-                        tf.reduce_sum( [ tf.reduce_sum( tf.squared_difference(disc_params[i][o],disc_params_mean[o]) ) for o in range(len(disc_params[i]))] ) for i in NODES]
+						tf.reduce_sum( [ tf.reduce_sum( tf.squared_difference(disc_params[i][o],disc_params_mean[o]) ) for o in range(len(disc_params[i]))] ) for i in NODES]
 
 gen_mean_norm = tf.reduce_sum( [ tf.reduce_sum( tf.square(gen_params_mean[o]) ) for o in range(len(gen_params_mean))] )
 disc_mean_norm = tf.reduce_sum( [ tf.reduce_sum( tf.square(disc_params_mean[o]) ) for o in range(len(disc_params_mean))] )
@@ -322,11 +322,11 @@ with tf.Session() as session:
 				if MODE == 'wgan':
 					_ = session.run(clip_disc_weights[node])
 
-	               	if (iteration % 100 == 99 or iteration < 10):
-        	                #lib.plot.plot('NODE {}: train disc cost'.format(node), _disc_cost)
-                	        print('iter {} NODE {}: train disc cost : {}, time: {}'.format(iteration,node,_disc_cost,time.time() - start_time) )
-	                       	#lib.plot.plot('NODE {}: time'.format(node), time.time() - start_time)
-	                        #print('iter {} NODE {}: time'.format(iteration,node), time.time() - start_time)
+					if (iteration % 100 == 99 or iteration < 10):
+							#lib.plot.plot('NODE {}: train disc cost'.format(node), _disc_cost)
+							print('iter {} NODE {}: train disc cost : {}, time: {}'.format(iteration,node,_disc_cost,time.time() - start_time) )
+							#lib.plot.plot('NODE {}: time'.format(node), time.time() - start_time)
+							#print('iter {} NODE {}: time'.format(iteration,node), time.time() - start_time)
 
 		
 		#print('NODE 0',[session.run(gen_params[0][o]).shape for o in range(len(gen_params[0])) ] )
@@ -340,10 +340,10 @@ with tf.Session() as session:
 
 			# IMPORTANT: second position is the norm of the mean!
 			with open('gen_mean.dat','ab') as file:
-                                file.write(str(iteration)+','+str(gw)+','+','.join([str(g) for g in gm])+'\n')
+								file.write(str(iteration)+','+str(gw)+','+','.join([str(g) for g in gm])+'\n')
 			with open('disc_mean.dat','ab') as file:
-                                file.write(str(iteration)+','+str(dw)+','.join([str(d) for d in dm])+'\n')
-                        print('iter {}  gen_dists : {}'.format(iteration,gm))
+								file.write(str(iteration)+','+str(dw)+','.join([str(d) for d in dm])+'\n')
+						print('iter {}  gen_dists : {}'.format(iteration,gm))
 			print('iter {}  disc_dists : {}'.format(iteration,dm))
 
 		session.run(combination_op)
@@ -367,13 +367,13 @@ with tf.Session() as session:
 			#	with open('inception_score_dist_{}.dat'.format(nnod),'ab') as file:
 			#		file.write(str(iteration)+','+str(inception_score_array[nnod][0])+'\n')
 			print('NODE 3: inception score {}'.format(inception_score_3[0]) ) 
-                        with open('inception_score_dist_3.dat','ab') as file: 
-                                file.write(str(iteration)+','+str(inception_score_3[0])+'\n') 
+						with open('inception_score_dist_3.dat','ab') as file: 
+								file.write(str(iteration)+','+str(inception_score_3[0])+'\n') 
 
 
 			print('NODE 6: inception score {}'.format(inception_score_6[0]) )
-                        with open('inception_score_dist_6.dat','ab') as file:
-                                file.write(str(iteration)+','+str(inception_score_6[0])+'\n')
+						with open('inception_score_dist_6.dat','ab') as file:
+								file.write(str(iteration)+','+str(inception_score_6[0])+'\n')
 
 
 		if iteration % 5000 == 4999:
@@ -392,8 +392,8 @@ with tf.Session() as session:
 		#	print('iter {} NODE 0: dev disc cost'.format(iteration), np.mean(dev_disc_costs))
 			#generate_image(iteration, _data)
 
-                if (iteration % 100 == 99 or iteration < 10):
-                        print('Total time: {}'.format(time.time() - start_time) )
+		if (iteration % 100 == 99 or iteration < 10):
+			print('Total time: {}'.format(time.time() - start_time) )
 
 
 		# Save logs every 100 iters
