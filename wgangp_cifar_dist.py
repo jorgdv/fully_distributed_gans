@@ -167,8 +167,8 @@ for i in NODES:
 		gradient_penalty = tf.reduce_mean((slopes-1.)**2)
 		disc_cost[i] += LAMBDA*gradient_penalty
 
-				gen_train_op.append(tf.train.MomentumOptimizer(learning_rate=2e-4, momentum=0.9, use_nesterov=True).minimize(gen_cost[i], var_list=gen_params[i]))
-				disc_train_op.append(tf.train.MomentumOptimizer(learning_rate=2e-4, momentum=0.9, use_nesterov=True).minimize(disc_cost[i], var_list=disc_params[i]))
+		gen_train_op.append(tf.train.MomentumOptimizer(learning_rate=2e-4, momentum=0.9, use_nesterov=True).minimize(gen_cost[i], var_list=gen_params[i]))
+		disc_train_op.append(tf.train.MomentumOptimizer(learning_rate=2e-4, momentum=0.9, use_nesterov=True).minimize(disc_cost[i], var_list=disc_params[i]))
 
 		#gen_train_op.append(tf.train.AdamOptimizer(learning_rate=1e-4, beta1=0.5, beta2=0.9).minimize(gen_cost[i], var_list=gen_params[i]))
 		#disc_train_op.append(tf.train.AdamOptimizer(learning_rate=1e-4, beta1=0.5, beta2=0.9).minimize(disc_cost[i], var_list=disc_params[i]))
