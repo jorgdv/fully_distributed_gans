@@ -23,7 +23,7 @@ DATA_DIR = 'data/cifar'
 if len(DATA_DIR) == 0:
 	raise Exception('Please specify path to data directory in gan_cifar.py!')
 
-MODE = 'dcgan' # Valid options are dcgan, wgan, or wgan-gp
+MODE = 'wgan-gp' # Valid options are dcgan, wgan, or wgan-gp
 DIM = 128 # This overfits substantially; you're probably better off with 64
 LAMBDA = 10 # Gradient penalty lambda hyperparameter
 CRITIC_ITERS = 5 # How many critic iterations per generator iteration
@@ -167,8 +167,11 @@ for i in NODES:
 		gradient_penalty = tf.reduce_mean((slopes-1.)**2)
 		disc_cost[i] += LAMBDA*gradient_penalty
 
-		gen_train_op.append(tf.train.AdamOptimizer(learning_rate=1e-4, beta1=0.5, beta2=0.9).minimize(gen_cost[i], var_list=gen_params[i]))
-		disc_train_op.append(tf.train.AdamOptimizer(learning_rate=1e-4, beta1=0.5, beta2=0.9).minimize(disc_cost[i], var_list=disc_params[i]))
+                gen_train_op.append(tf.train.MomentumOptimizer(learning_rate=2e-4, momentum=0.9, use_nesterov=True).minimize(gen_cost[i], var_list=gen_params[i]))
+                disc_train_op.append(tf.train.MomentumOptimizer(learning_rate=2e-4, momentum=0.9, use_nesterov=True).minimize(disc_cost[i], var_list=disc_params[i]))
+
+		#gen_train_op.append(tf.train.AdamOptimizer(learning_rate=1e-4, beta1=0.5, beta2=0.9).minimize(gen_cost[i], var_list=gen_params[i]))
+		#disc_train_op.append(tf.train.AdamOptimizer(learning_rate=1e-4, beta1=0.5, beta2=0.9).minimize(disc_cost[i], var_list=disc_params[i]))
 
 	elif MODE == 'dcgan':
 		gen_cost.append( tf.reduce_mean(tf.nn.sigmoid_cross_entropy_with_logits(logits = disc_fake[i], labels = tf.ones_like(disc_fake[i]))) )
